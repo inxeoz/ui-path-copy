@@ -59,23 +59,43 @@ function fallbackCopy(text, resolve, reject) {
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.action !== 'get-nav-path') return;
+  if (msg.action === 'get-nav-path') {
+    if (!lastRightClicked) {
+      alert('UI Path Copy: right-click an element first, then use "Copy Navigation Path".');
+      return;
+    }
 
-  if (!lastRightClicked) {
-    alert('UI Path Copy: right-click an element first, then use "Copy Navigation Path".');
-    return;
+    const path = buildPath(lastRightClicked);
+    lastRightClicked = null;
+
+    copyToClipboard(path).then(() => {
+      const count = path.split(' > ').length;
+      const preview = path.length > 80 ? path.substring(0, 80) + '...' : path;
+      console.log(`%cUI Path Copy%c Copied ${count}-segment path: ${preview}`,
+        'background:#1E3A5F;color:#FFD700;padding:2px 6px;border-radius:4px;font-weight:700;',
+        'color:#0f172a;');
+    }).catch(() => {
+      alert('UI Path Copy: failed to copy to clipboard. Check extension permissions.');
+    });
   }
 
-  const path = buildPath(lastRightClicked);
-  lastRightClicked = null;
+  if (msg.action === 'get-url-path') {
+    if (!lastRightClicked) {
+      alert('UI Path Copy: right-click an element first, then use "Copy URL + Path".');
+      return;
+    }
 
-  copyToClipboard(path).then(() => {
-    const count = path.split(' > ').length;
-    const preview = path.length > 80 ? path.substring(0, 80) + '...' : path;
-    console.log(`%cUI Path Copy%c Copied ${count}-segment path: ${preview}`,
-      'background:#1E3A5F;color:#FFD700;padding:2px 6px;border-radius:4px;font-weight:700;',
-      'color:#0f172a;');
-  }).catch(() => {
-    alert('UI Path Copy: failed to copy to clipboard. Check extension permissions.');
-  });
+    const path = buildPath(lastRightClicked);
+    const output = `${location.href} | ${path}`;
+    lastRightClicked = null;
+
+    copyToClipboard(output).then(() => {
+      const preview = output.length > 100 ? output.substring(0, 100) + '...' : output;
+      console.log(`%cUI Path Copy%c Copied URL + path: ${preview}`,
+        'background:#1E3A5F;color:#FFD700;padding:2px 6px;border-radius:4px;font-weight:700;',
+        'color:#0f172a;');
+    }).catch(() => {
+      alert('UI Path Copy: failed to copy to clipboard. Check extension permissions.');
+    });
+  }
 });

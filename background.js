@@ -4,15 +4,27 @@ chrome.runtime.onInstalled.addListener(() => {
     title: 'Copy Navigation Path',
     contexts: ['all'],
   });
+  chrome.contextMenus.create({
+    id: 'copy-url-path',
+    title: 'Copy URL + Path',
+    contexts: ['all'],
+  });
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId !== 'copy-nav-path') return;
+  if (info.menuItemId === 'copy-nav-path') {
+    chrome.tabs.sendMessage(tab.id, { action: 'get-nav-path' }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.warn('UI Path Copy:', chrome.runtime.lastError.message);
+      }
+    });
+  }
 
-  chrome.tabs.sendMessage(tab.id, { action: 'get-nav-path' }, (response) => {
-    if (chrome.runtime.lastError) {
-      console.warn('UI Path Copy: no content script response', chrome.runtime.lastError.message);
-      return;
-    }
-  });
+  if (info.menuItemId === 'copy-url-path') {
+    chrome.tabs.sendMessage(tab.id, { action: 'get-url-path' }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.warn('UI Path Copy:', chrome.runtime.lastError.message);
+      }
+    });
+  }
 });

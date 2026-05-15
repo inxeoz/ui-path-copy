@@ -33,14 +33,23 @@ function buildPath(el) {
 // Clipboard write is handled by background.js via tabs.executeScript
 // so the clipboardWrite permission applies in the focused tab context.
 browser.runtime.onMessage.addListener((msg) => {
-  if (msg.action !== 'get-nav-path') return;
-
-  if (!lastRightClicked) {
-    alert('UI Path Copy: right-click an element first, then use "Copy Navigation Path".');
-    return Promise.resolve({ error: 'no element right-clicked' });
+  if (msg.action === 'get-nav-path') {
+    if (!lastRightClicked) {
+      alert('UI Path Copy: right-click an element first, then use "Copy Navigation Path".');
+      return Promise.resolve({ error: 'no element right-clicked' });
+    }
+    const path = buildPath(lastRightClicked);
+    lastRightClicked = null;
+    return Promise.resolve({ path });
   }
 
-  const path = buildPath(lastRightClicked);
-  lastRightClicked = null;
-  return Promise.resolve({ path });
+  if (msg.action === 'get-url-path') {
+    if (!lastRightClicked) {
+      alert('UI Path Copy: right-click an element first, then use "Copy URL + Path".');
+      return Promise.resolve({ error: 'no element right-clicked' });
+    }
+    const path = buildPath(lastRightClicked);
+    lastRightClicked = null;
+    return Promise.resolve({ path, url: location.href });
+  }
 });
