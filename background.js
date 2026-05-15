@@ -11,7 +11,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
   chrome.tabs.sendMessage(tab.id, { action: 'get-nav-path' }, (response) => {
     if (chrome.runtime.lastError) {
-      console.warn('CMTS Navigator: no content script response', chrome.runtime.lastError.message);
+      console.warn('UI Path Copy: no content script response', chrome.runtime.lastError.message);
       return;
     }
   });

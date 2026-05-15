@@ -36,7 +36,7 @@ browser.runtime.onMessage.addListener((msg) => {
   if (msg.action !== 'get-nav-path') return;
 
   if (!lastRightClicked) {
-    alert('CMTS Navigator: right-click an element first, then use "Copy Navigation Path".');
+    alert('UI Path Copy: right-click an element first, then use "Copy Navigation Path".');
     return Promise.resolve({ error: 'no element right-clicked' });
   }
 

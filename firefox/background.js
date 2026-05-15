@@ -33,17 +33,17 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
             var count = p.split(' > ').length;
             var preview = p.length > 80 ? p.substring(0, 80) + '...' : p;
             console.log(
-              '%cCMTS Navigator%c Copied ' + count + '-segment path: ' + preview,
+              '%cUI Path Copy%c Copied ' + count + '-segment path: ' + preview,
               'background:#1E3A5F;color:#FFD700;padding:2px 6px;border-radius:4px;font-weight:700;',
               'color:#0f172a;'
             );
           } else {
-            alert('CMTS Navigator: execCommand copy failed.');
+            alert('UI Path Copy: execCommand copy failed.');
           }
         })(${escaped});`,
       });
     })
     .catch((err) => {
-      console.warn('CMTS Navigator:', err.message);
+      console.warn('UI Path Copy:', err.message);
     });
 });

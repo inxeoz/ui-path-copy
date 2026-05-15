@@ -62,7 +62,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action !== 'get-nav-path') return;
 
   if (!lastRightClicked) {
-    alert('CMTS Navigator: right-click an element first, then use "Copy Navigation Path".');
+    alert('UI Path Copy: right-click an element first, then use "Copy Navigation Path".');
     return;
   }
 
@@ -72,10 +72,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   copyToClipboard(path).then(() => {
     const count = path.split(' > ').length;
     const preview = path.length > 80 ? path.substring(0, 80) + '...' : path;
-    console.log(`%cCMTS Navigator%c Copied ${count}-segment path: ${preview}`,
+    console.log(`%cUI Path Copy%c Copied ${count}-segment path: ${preview}`,
       'background:#1E3A5F;color:#FFD700;padding:2px 6px;border-radius:4px;font-weight:700;',
       'color:#0f172a;');
   }).catch(() => {
-    alert('CMTS Navigator: failed to copy to clipboard. Check extension permissions.');
+    alert('UI Path Copy: failed to copy to clipboard. Check extension permissions.');
   });
 });

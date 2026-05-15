@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
-  "name": "CMTS Navigator",
+  "name": "UI Path Copy",
   "version": "1.0.0",
-  "description": "Copy data-testid navigation paths from CMTS pages for E2E tests",
+  "description": "Right-click any element to copy its data-testid navigation path for Playwright E2E tests",
   "permissions": [
     "contextMenus",
     "clipboardWrite",
@@ -20,7 +20,7 @@
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "cmts-navigator@cmts",
+      "id": "ui-path-copy@ui",
       "strict_min_version": "91.0"
     }
   }
