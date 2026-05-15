@@ -1,159 +1,149 @@
 # UI Path Copy
 
-A browser extension for Chrome and Firefox. Right-click any element on any page to copy its `data-testid` navigation path to the clipboard — ready to paste straight into a Playwright selector.
+A browser extension for Chrome and Firefox. Right-click any element to copy its DOM path for E2E tests — Playwright, Cypress, or raw CSS/XPath selectors.
 
 ---
 
-## Table of Contents
+## Features
 
-1. [What it copies](#what-it-copies)
-2. [Frontend project setup](#frontend-project-setup)
-3. [Install — Chrome](#install--chrome)
-4. [Install — Firefox](#install--firefox)
-5. [Usage](#usage)
-6. [How it works](#how-it-works)
+| Feature | Description |
+|---|---|
+| **Right-click → Copy** | Right-click any element, copy its path in your preferred format |
+| **Multiple formats** | Playwright path, CSS selector, XPath, or ready-to-paste Playwright snippet |
+| **Inspector mode** | Hover to see paths live, click to copy (toggle from popup or context menu) |
+| **Copy all testids** | One-click dump every `data-testid` on the page |
+| **Highlight on copy** | Brief gold flash on the copied element |
+| **Shadow DOM** | Traverses open shadow roots |
+| **`data-testignore`** | Skip noisy wrapper elements |
+| **`data-testlabel`** | Human-readable labels alongside testids |
+| **`data-test-context`** | Page/section context prefix in paths |
 
 ---
 
-## What it copies
+## Output formats
 
-Right-clicking an element produces a `>` separated path walking up the DOM. Each segment is either the element's `data-testid` value (preferred) or `tag[index]` when no testid is present.
+Default format is configurable in the popup (click the extension icon).
 
-```
-input:username
-btn:sign-in
-div[1] > div[2] > form[1] > div[1] > input:username
-```
-
-Paste directly into a Playwright test:
-
-```js
-await page.locator('input:username').fill('admin');
-await page.locator('btn:sign-in').click();
-
-// or for a deeper path:
-await page.locator('div[1] > div[2] > form[1] > div[1] > input:username').click();
-```
+| Format | Example |
+|---|---|
+| Playwright path | `div[1] > section[1] > input:email` |
+| CSS selector | `section > div:nth-of-type(1) > [data-testid="email"]` |
+| XPath | `/html/body/div[1]/section[1]/input[1]` |
+| Playwright snippet | `await page.getByTestId('email').fill('')` |
 
 ---
 
 ## Frontend project setup
 
-The extension works on **any website** out of the box. No special setup is required for external sites.
+Add these attributes to your UI for cleaner, more stable paths:
 
-For local development against the frontend in this repo:
+| Attribute | Purpose |
+|---|---|
+| `data-testid` | Unique identifier for the element (primary segment) |
+| `data-testlabel` | Human-readable label shown alongside the testid |
+| `data-testignore` | Mark decorative/wrapper elements to skip in path |
+| `data-test-context` | Set on a parent to prefix paths with page/section name |
+
+The extension works on **any website** out of the box without special setup.
+
+For local development:
 
 ```bash
 # from the frontend/ directory
-npm install        # or: bun install
+npm install
 npm run dev        # starts Vite dev server on http://localhost:5175
 ```
 
-Once the dev server is running, open `http://localhost:5175` in the browser where the extension is installed and start right-clicking.
+Open `http://localhost:5175` in a browser with the extension installed.
 
 ---
 
 ## Install — Chrome
 
 1. Open **chrome://extensions**
-2. Enable **Developer mode** (top-right toggle)
+2. Enable **Developer mode**
 3. Click **Load unpacked**
-4. Select the `cmts-navigator/` folder (this folder — the one containing `manifest.json`)
-5. The extension appears in the toolbar as **UI Path Copy**
-
-To reload after code changes: click the refresh icon on the extension card in `chrome://extensions`.
-
----
+4. Select the `chromium/` folder (the one containing `manifest.json`)
+5. Click the extension icon to open settings
 
 ## Install — Firefox
 
 1. Open **about:debugging**
-2. Click **This Firefox** in the left sidebar
+2. Click **This Firefox**
 3. Click **Load Temporary Add-on...**
-4. Navigate to the `cmts-navigator/firefox/` folder and select `manifest.json`
-5. The extension is active until Firefox is restarted
-
-> **Note:** Temporary add-ons are removed on restart. For a persistent install, the extension would need to be signed by Mozilla.
-
-To reload after code changes: click **Reload** next to the extension in `about:debugging`.
+4. Select `firefox/manifest.json`
+5. Temporary add-ons are removed on restart (persistent install requires Mozilla signing)
 
 ---
 
 ## Usage
 
-1. Navigate to any page in the browser where the extension is installed
-2. **Right-click** the element whose path you want
-3. In the context menu, click **Copy Navigation Path**
-4. The path is now in your clipboard — paste it into your test
+### Right-click
+1. Right-click any element → context menu appears
+2. Select **Copy Path** or **Copy URL + Path**
+3. Path is in your clipboard; element flashes gold
 
-A styled confirmation appears in the browser console (F12 → Console):
+### Inspector mode
+1. Click the extension icon → **Toggle Inspector**
+2. Hover any element to see its path in a floating tooltip
+3. Click to copy and auto-exit inspector
 
-```
-UI Path Copy  Copied 4-segment path: div[1] > section[1] > div[2] > btn:submit
-```
-
-If you see the alert _"right-click an element first"_, the right-click was not captured — try right-clicking directly on the element (not the scrollbar or a browser UI area) and then selecting the menu item without moving the mouse to a different element.
+### Copy all testids
+Right-click → **Copy All testids on Page** or use the popup button. Outputs sorted `data-testid` values with counts for duplicates.
 
 ---
 
-## How it works
+## Context menu items
+
+| Item | Action |
+|---|---|
+| Copy Path | Copies element path in selected format |
+| Copy URL + Path | `URL \| path` |
+| Copy All testids on Page | All `data-testid` values on the page |
+| Toggle Inspector Mode | Enable/disable hover-to-copy mode |
+
+---
+
+## Architecture
 
 ```
-User right-clicks element
-        │
-        ▼
-content.js — contextmenu event listener
-  stores the right-clicked element in lastRightClicked
-        │
-        ▼
-User clicks "Copy Navigation Path" in context menu
-        │
-        ▼
-background.js — contextMenus.onClicked
-  sends { action: 'get-nav-path' } message to the active tab's content script
-        │
-        ▼
-content.js — runtime.onMessage listener
-  calls buildPath(lastRightClicked)
-  clears lastRightClicked
-        │
-        ▼
-buildPath(el)
-  walks up the DOM from the element to <body>
-  for each ancestor:
-    - if it has data-testid  →  use that value as the segment
-    - otherwise              →  use tagName[siblingIndex] (e.g. div[2])
-  joins segments with " > "
-  returns the path string
-        │
-        ▼
-clipboard write
-  Chrome: navigator.clipboard.writeText() with execCommand fallback
-  Firefox: path is returned to background.js, which injects
-           execCommand copy via tabs.executeScript() into the focused tab
-           (avoids Firefox content-script clipboard restrictions)
-        │
-        ▼
-Path is in the clipboard
+Right-click element
+  → content.js stores target
+  → context menu item clicked
+  → background.js routes to content script
+  → content.js builds path in selected format
+  → clipboard write (Chrome: navigator.clipboard / Firefox: execCommand inject)
+  → highlight + console log
 ```
 
-### Path segment rules
+### Segment rules
 
 | Condition | Segment |
 |---|---|
 | Element has `data-testid="btn:sign-in"` | `btn:sign-in` |
-| Element is the 2nd `<div>` among its siblings | `div[2]` |
-| Element is the only `<form>` among its siblings | `form[1]` |
+| Element is 2nd `<div>` among siblings | `div[2]` |
+| Element has `data-testignore` | Skipped (parent used) |
 
-The walk stops at `<body>` — the root container is never included.
+The walk stops at `<body>` and has a 50-depth limit.
 
-### Chrome vs Firefox architecture
+### Chrome vs Firefox
 
 | | Chrome (MV3) | Firefox (MV2) |
 |---|---|---|
-| Background | Service worker (`background.js`) | Persistent page (`background.js`) |
-| API namespace | `chrome.*` | `browser.*` (Promise-based) |
-| Clipboard | `navigator.clipboard.writeText` in content script | `tabs.executeScript` injects `execCommand` from background |
+| Background | Service worker | Persistent page |
+| API | `chrome.*` | `browser.*` |
+| Clipboard | Content script writes directly | Background injects via `tabs.executeScript` |
+| Inspector mode | ✅ Full | ❌ (not supported) |
 | Manifest | `manifest.json` | `firefox/manifest.json` |
 
-Firefox uses a different clipboard strategy because `navigator.clipboard.writeText()` in Firefox content scripts does not reliably fire after an extension background message (the user-gesture chain is broken by the time the message arrives). Injecting `execCommand` via `tabs.executeScript` bypasses this — the code runs in the tab context where the page already has focus after the context menu closes.
+---
+
+## Development
+
+Test the extension with Playwright:
+
+```bash
+node diagnose.js
+```
+
+This launches a browser with the extension loaded and verifies path building and clipboard behaviour.

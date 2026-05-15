@@ -1,23 +1,30 @@
 {
   "manifest_version": 2,
   "name": "UI Path Copy",
-  "version": "1.0.0",
-  "description": "Right-click any element to copy its data-testid navigation path for Playwright E2E tests",
+  "version": "2.0.0",
+  "description": "Right-click any element to copy its selector path for E2E tests",
   "permissions": [
     "contextMenus",
     "clipboardWrite",
     "activeTab",
+    "storage",
     "<all_urls>"
   ],
   "background": {
-    "scripts": ["background.js"]
+    "scripts": ["background.js"],
+    "persistent": true
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["lib/path-builder.js", "content.js"],
+      "run_at": "document_end"
     }
   ],
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_title": "UI Path Copy"
+  },
   "browser_specific_settings": {
     "gecko": {
       "id": "ui-path-copy@ui",

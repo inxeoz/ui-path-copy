@@ -1,37 +1,12 @@
-/**
- * Diagnostic: verify Firefox content.js path logic AND
- * simulate the background.js executeScript clipboard approach.
- */
 const { chromium, firefox } = require('playwright');
 const path = require('path');
+const fs = require('fs');
 
-const CHROME_EXT = path.resolve(__dirname);
+const P = fs.readFileSync('./lib/path-builder.js', 'utf-8');
+const DEF_SETTINGS = { format: 'playwright-path', highlight: true, shadowDom: true, skipTestignore: true };
+
+const CHROME_EXT = path.resolve(__dirname, 'chromium');
 const LOGIN_URL = 'http://localhost:5175/login';
-
-const BUILD_PATH_FN = `
-function buildPath(el) {
-  const segments = [];
-  let current = el;
-  while (current && current !== document.documentElement && current !== document.body) {
-    const testId = current.getAttribute('data-testid');
-    if (testId) {
-      segments.unshift(testId);
-    } else {
-      const tag = current.tagName.toLowerCase();
-      const parent = current.parentElement;
-      if (parent) {
-        const siblings = Array.from(parent.children).filter(c => c.tagName === current.tagName);
-        const idx = siblings.indexOf(current) + 1;
-        segments.unshift(tag + '[' + idx + ']');
-      } else {
-        segments.unshift(tag);
-      }
-    }
-    current = current.parentElement;
-  }
-  return segments.join(' > ');
-}
-`;
 
 async function testChrome() {
   console.log('\n═══ CHROME EXTENSION TEST ═══');
@@ -52,11 +27,12 @@ async function testChrome() {
   await page.goto(LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: 15000 });
   await page.waitForTimeout(1500);
 
-  const el = await page.evaluate((code) => {
-    eval(code);
+  const el = await page.evaluate((src) => {
+    eval(src);
+    const settings = { format: 'playwright-path', highlight: true, shadowDom: true, skipTestignore: true };
     const e = document.querySelector('[data-testid]');
-    return e ? { testId: e.getAttribute('data-testid'), path: buildPath(e) } : null;
-  }, BUILD_PATH_FN);
+    return e ? { testId: e.getAttribute('data-testid'), path: formatPath(e, settings) } : null;
+  }, P);
   console.log('  element:', JSON.stringify(el));
 
   if (el) {
@@ -103,20 +79,18 @@ async function testFirefox() {
   );
   console.log('  data-testid elements:', allTestIds);
 
-  const el = await page.evaluate((code) => {
-    eval(code);
+  const el = await page.evaluate((src) => {
+    eval(src);
+    const settings = { format: 'playwright-path', highlight: true, shadowDom: true, skipTestignore: true };
     const e = document.querySelector('[data-testid]');
-    return e ? { testId: e.getAttribute('data-testid'), path: buildPath(e) } : null;
-  }, BUILD_PATH_FN);
+    return e ? { testId: e.getAttribute('data-testid'), path: formatPath(e, settings) } : null;
+  }, P);
   console.log('  buildPath result:', JSON.stringify(el));
 
   if (!el) { await browser.close(); return; }
 
-  // Simulate exactly what background.js now does via executeScript:
-  // inject clipboard code into the page and run it.
   const clipResult = await page.evaluate((pathVal) => {
     const escaped = JSON.stringify(pathVal);
-    // This is the exact code background.js injects:
     const injected = `(function(p) {
       var ta = document.createElement('textarea');
       ta.value = p;
@@ -129,19 +103,16 @@ async function testFirefox() {
       return ok;
     })(${escaped});`;
 
-    // eslint-disable-next-line no-eval
     const ok = eval(injected);
     return { execCommandResult: ok };
   }, el.path);
   console.log('  executeScript clipboard inject:', JSON.stringify(clipResult));
 
-  // Try to read back via navigator.clipboard
   const clipRead = await page.evaluate(() =>
     navigator.clipboard.readText().catch(e => 'READ_ERR: ' + e.message)
   );
   console.log('  clipboard read back:', JSON.stringify(clipRead));
 
-  // Also test navigator.clipboard.writeText directly for comparison
   const navClipResult = await page.evaluate(async (text) => {
     try {
       await navigator.clipboard.writeText(text + '__nav');

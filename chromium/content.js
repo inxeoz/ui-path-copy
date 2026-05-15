@@ -13,15 +13,37 @@ const settings = {
 };
 
 (async () => {
-  const stored = await browser.storage.sync.get(settings);
+  const stored = await chrome.storage.sync.get(settings);
   Object.assign(settings, stored);
 })();
 
-browser.storage.onChanged.addListener(changes => {
+chrome.storage.onChanged.addListener(changes => {
   for (const [key, { newValue }] of Object.entries(changes)) {
     if (key in settings) settings[key] = newValue;
   }
 });
+
+function copyToClipboard(text) {
+  return new Promise((resolve, reject) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(resolve).catch(() => fallbackCopy(text, resolve, reject));
+    } else {
+      fallbackCopy(text, resolve, reject);
+    }
+  });
+}
+
+function fallbackCopy(text, resolve, reject) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try { document.execCommand('copy'); resolve(); }
+  catch { reject(); }
+  finally { document.body.removeChild(ta); }
+}
 
 function highlightElement(el) {
   if (!settings.highlight) return;
@@ -52,8 +74,6 @@ function logCopy(label, text) {
     'color:#0f172a;'
   );
 }
-
-// ─── Inspector / Overlay ────────────────────────────
 
 function createTooltip() {
   const d = document.createElement('div');
@@ -86,11 +106,11 @@ function onClickInspector(e) {
   e.stopPropagation();
   const path = formatPath(el, settings);
   if (!path) return;
-
-  browser.runtime.sendMessage({ action: 'inspector-copy', path });
-  highlightElement(el);
-  logCopy('Inspector copied', path);
-  toggleInspector(false);
+  copyToClipboard(path).then(() => {
+    highlightElement(el);
+    logCopy('Inspector copied', path);
+    toggleInspector(false);
+  });
 }
 
 function createModeIndicator() {
@@ -121,39 +141,41 @@ function toggleInspector(force) {
   }
 }
 
-// ─── Right-click ────────────────────────────────────
-
 document.addEventListener('contextmenu', e => { lastRightClicked = e.target; }, true);
 
-// ─── Message Handler ────────────────────────────────
-
-browser.runtime.onMessage.addListener((msg) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'get-nav-path') {
-    if (!lastRightClicked) return Promise.resolve({ error: 'no element' });
+    if (!lastRightClicked) { alert('UI Path Copy: right-click an element first.'); sendResponse({}); return; }
     const el = lastRightClicked;
     lastRightClicked = null;
     const text = formatPath(el, settings);
-    highlightElement(el);
-    return Promise.resolve({ path: text, url: location.href });
+    copyToClipboard(text).then(() => { highlightElement(el); logCopy('Copied', text); })
+      .catch(() => alert('UI Path Copy: clipboard failed.'));
+    sendResponse({ ok: true });
   }
 
   if (msg.action === 'get-url-path') {
-    if (!lastRightClicked) return Promise.resolve({ error: 'no element' });
+    if (!lastRightClicked) { alert('UI Path Copy: right-click an element first.'); sendResponse({}); return; }
     const el = lastRightClicked;
     lastRightClicked = null;
     const text = location.href + ' | ' + formatPath(el, settings);
-    highlightElement(el);
-    return Promise.resolve({ path: text, url: location.href });
+    copyToClipboard(text).then(() => { highlightElement(el); logCopy('Copied URL + path', text); })
+      .catch(() => alert('UI Path Copy: clipboard failed.'));
+    sendResponse({ ok: true });
   }
 
   if (msg.action === 'get-all-testids') {
     const map = getAllTestIds();
     const text = formatAllTestIds(map);
-    return Promise.resolve({ path: text });
+    copyToClipboard(text).then(() => {
+      const n = Object.keys(map).length;
+      logCopy('Copied ' + n + ' testid' + (n !== 1 ? 's' : ''), text.slice(0, 80));
+    }).catch(() => alert('UI Path Copy: clipboard failed.'));
+    sendResponse({ ok: true });
   }
 
   if (msg.action === 'toggle-inspector') {
     toggleInspector();
-    return Promise.resolve({});
+    sendResponse({ ok: true });
   }
 });
