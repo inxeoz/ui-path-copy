@@ -29,6 +29,35 @@ function buildPath(el) {
   return segments.join(' > ');
 }
 
+function copyToClipboard(text) {
+  return new Promise((resolve, reject) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(resolve).catch(() => fallbackCopy(text, resolve, reject));
+    } else {
+      fallbackCopy(text, resolve, reject);
+    }
+  });
+}
+
+function fallbackCopy(text, resolve, reject) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  textarea.style.top = '-9999px';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    resolve();
+  } catch {
+    reject();
+  }
+  document.body.removeChild(textarea);
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action !== 'get-nav-path') return;
 
@@ -40,7 +69,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const path = buildPath(lastRightClicked);
   lastRightClicked = null;
 
-  navigator.clipboard.writeText(path).then(() => {
+  copyToClipboard(path).then(() => {
     const count = path.split(' > ').length;
     const preview = path.length > 80 ? path.substring(0, 80) + '...' : path;
     console.log(`%cCMTS Navigator%c Copied ${count}-segment path: ${preview}`,
