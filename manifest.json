@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "CMTS Navigator",
+  "version": "1.0.0",
+  "description": "Copy data-testid navigation paths from CMTS pages for Playwright E2E tests",
+  "permissions": [
+    "contextMenus",
+    "clipboardWrite",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost:5175/*",
+    "http://127.0.0.1:5175/*",
+    "https://*.court.gov.in/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost:5175/*",
+        "http://127.0.0.1:5175/*",
+        "https://*.court.gov.in/*"
+      ],
+      "js": ["content.js"]
+    }
+  ]
+}
