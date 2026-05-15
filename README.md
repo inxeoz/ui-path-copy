@@ -106,6 +106,9 @@ Right-click → **Copy All testids on Page** or use the popup button. Outputs so
 
 ## Architecture
 
+Shared code lives in `lib/`, browser-specific code in `chromium/` and `firefox/`.
+Duplicate files (`popup.html`, `popup.js`, `lib/path-builder.js`) are symlinked to a single canonical copy.
+
 ```
 Right-click element
   → content.js stores target
@@ -140,10 +143,11 @@ The walk stops at `<body>` and has a 50-depth limit.
 
 ## Development
 
-Test the extension with Playwright:
+Shared library code lives in `lib/` and is symlinked into each browser extension directory.
+
+Test with Playwright:
 
 ```bash
-node diagnose.js
+node verify.js              # Unit tests for path-builder
+node verify-any-site.js     # Integration tests against real sites
 ```
-
-This launches a browser with the extension loaded and verifies path building and clipboard behaviour.

@@ -177,10 +177,9 @@ async function main() {
   console.log(`  \u2713 firefox/manifest v${ffManifest.version} (MV${ffManifest.manifest_version})`);
 
   const required = [
+    'lib/path-builder.js',
     'chromium/content.js', 'chromium/background.js', 'chromium/manifest.json', 'chromium/popup.html', 'chromium/popup.js',
-    'chromium/lib/path-builder.js',
     'firefox/content.js', 'firefox/background.js', 'firefox/manifest.json', 'firefox/popup.html', 'firefox/popup.js',
-    'firefox/lib/path-builder.js',
   ];
   let missing = 0;
   for (const f of required) {
